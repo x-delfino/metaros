@@ -1,6 +1,6 @@
 use std::path::PathBuf;
 
-use clap::{AppSettings, Parser, Subcommand, Args};
+use clap::{ArgEnum, AppSettings, Parser, Subcommand, Args};
 
 #[derive(Debug, Parser)]
 #[clap(author, version, about)]
@@ -10,6 +10,10 @@ use clap::{AppSettings, Parser, Subcommand, Args};
 pub struct Cli {
     #[clap(subcommand)]
     pub command: Commands,
+    #[clap(short, long,
+        global(true), 
+        parse(from_occurrences))]
+    pub verbose: u64,
 }
 
 #[derive(Debug, Subcommand)]
@@ -17,6 +21,9 @@ pub enum Commands {
     #[clap(subcommand)]
     /// For working with Keytabs
     Keytab (KeytabCommands),
+    #[clap(subcommand)]
+    /// For working with keys & hashes
+    Key (KeyCommands),
 }
 
 
@@ -26,6 +33,12 @@ pub enum KeytabCommands {
     Create (KeytabCreate),
     /// Display parsed contents of a Keytab file
     Read (KeytabRead),
+}
+
+#[derive(Debug, Subcommand)]
+pub enum KeyCommands {
+    /// Derive keys and hashes used in Windows authentication
+    Derive (KeyDerive)
 }
 
 
@@ -76,3 +89,36 @@ pub struct KeytabRead {
     #[clap(short, long, parse(from_os_str))]
     pub infile: PathBuf,
 }
+
+
+#[derive(Debug, Args)]
+pub struct KeyDerive {
+    #[clap(arg_enum, short, long,
+        required_unless_present("all"))]
+    pub etype: Option<Etypes>,
+    #[clap(short, long,
+        required_if_eq_any(&[
+            ("etype", "aes128"),
+            ("etype", "aes256"),
+            ("etype", "des"),
+        ]),
+    )]
+    pub salt: Option<String>,
+    #[clap(short, long)]
+    pub password: String,
+    #[clap(short, long,
+        requires("salt")
+    )]
+    pub all: bool,
+}
+
+#[derive(Debug, ArgEnum, Clone)]
+pub enum Etypes {
+    Aes128,
+    Aes256,
+    Des,
+    Rc4,
+    Ntlm,
+    Lm
+}
+

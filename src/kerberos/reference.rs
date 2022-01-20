@@ -1,6 +1,3 @@
-
-
-
 #[derive(Debug)]
 pub struct RefTable {
     entries: Vec<RefItem>,    
@@ -24,6 +21,7 @@ impl RefTable {
             }
     }
 }
+
 
 lazy_static! {
     // https://www.rfc-editor.org/rfc/rfc3961.html#section-8

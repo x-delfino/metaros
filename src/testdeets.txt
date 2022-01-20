@@ -1,3 +1,0 @@
-delfino/server01.ad.company.com:1433@COMPANY.INT,aes128,f9a9c510c3aeb65f58d6b38d6284ba36,principal,,9
-delfino2/server01.ad.company.com:1433@COMPANY.INT,aes128,f9a9c510c3aeb65f58d6b38d6284ba36,principal,,9
-delfino3/server01.ad.company.com:1433@COMPANY.INT,aes128,f9a9c510c3aeb65f58d6b38d6284ba36,principal,,9

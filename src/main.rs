@@ -1,20 +1,32 @@
 #[macro_use]
 extern crate lazy_static;
 
+#[macro_use]
+extern crate log;
+
 mod kerberos;
 mod utils;
+mod crypto;
 
 use crate::kerberos::keytab;
-use crate::utils::args;
+use crate::utils::args::*;
+use crate::crypto::{aes, des, lanman, crypto::*};
 use std::error::Error;
 use clap::Parser;
+use loggerv;
 
 fn main() -> Result<(), Box<dyn Error>> {
-    let cli = args::Cli::parse();
+
+    let cli = Cli::parse();
+    loggerv::Logger::new()
+        .verbosity(cli.verbose)
+        .module_path(false)
+        .init()
+        .unwrap();
     match &cli.command {
-        args::Commands::Keytab(c) => {
+        Commands::Keytab(c) => {
             match c {
-                args::KeytabCommands::Create(x) => {
+                KeytabCommands::Create(x) => {
                     let kt: keytab::Keytab;
                     match &x.infile {
                         Some(f) => {
@@ -38,7 +50,7 @@ fn main() -> Result<(), Box<dyn Error>> {
                     }
                     kt.to_file(&x.outfile)?;
                 },
-                args::KeytabCommands::Read(x) => {
+                KeytabCommands::Read(x) => {
                     println!("Reading: {}", x.infile.display());
                     println!(
                         "{}", 
@@ -48,21 +60,107 @@ fn main() -> Result<(), Box<dyn Error>> {
             }
 
         }
+        Commands::Key(c) => {
+            match c {
+                KeyCommands::Derive(sc) => {
+                    if sc.all {
+                        println!("lets do all");
+                        println!("[AES128] {}",
+                            hex::encode_upper(
+                                aes::KrbAes128::string_to_key(
+                                    &sc.password,
+                                    &sc.salt.as_ref().unwrap() 
+                                )
+                            )
+                        );
+                        println!("[AES256] {}", 
+                            hex::encode_upper(
+                                aes::KrbAes256::string_to_key(
+                                    &sc.password,
+                                    &sc.salt.as_ref().unwrap()
+                                )
+                            )
+                        );
+                        println!("[DES] {}", 
+                            hex::encode_upper(
+                                des::KrbDes::string_to_key(
+                                    &sc.password,
+                                    &sc.salt.as_ref().unwrap() 
+                                )
+                            )
+                        );
+                        println!("[RC4/NTLM] {}", 
+                            hex::encode_upper(
+                                lanman::NTLanMan::from_string(
+                                    &sc.password,
+                                )
+                            )
+                        );
+                        println!("[LM] {}",
+                            hex::encode_upper(
+                                lanman::LanMan::from_string(
+                                    &sc.password,
+                                )
+                            )
+                        );
+                    }
+                    else {
+                        match &sc.etype.as_ref().unwrap() {
+                            Etypes::Aes128 => {
+                                println!("[AES128] {}", 
+                                    hex::encode_upper(
+                                        aes::KrbAes128::string_to_key(
+                                            &sc.password,
+                                            &sc.salt.as_ref().unwrap() 
+                                        )
+                                    )
+                                );
+                            }
+                            Etypes::Aes256 => {
+                                println!("[AES256] {}", 
+                                    hex::encode_upper(
+                                        aes::KrbAes256::string_to_key(
+                                            &sc.password,
+                                            &sc.salt.as_ref().unwrap() 
+                                        )
+                                    )
+                                );
+                            }
+                            Etypes::Des => {
+                                println!("[DES] {}", 
+                                    hex::encode_upper(
+                                        des::KrbDes::string_to_key(
+                                            &sc.password,
+                                            &sc.salt.as_ref().unwrap() 
+                                        )
+                                    )
+                                );
+                            }
+                            Etypes::Rc4 | Etypes::Ntlm => {
+                                println!("[RC4/NTLM] {}", 
+                                    hex::encode_upper(
+                                        lanman::NTLanMan::from_string(
+                                            &sc.password,
+                                        )
+                                    )
+                                );
+                            }
+                            Etypes::Lm => {
+                                println!("[LM] {}",
+                                    hex::encode_upper(
+                                        lanman::LanMan::from_string(
+                                            &sc.password,
+                                        )
+                                    )
+                                );
+                            }
+                        }
+                    }
+                }
+            }
+        }
     }
     Ok(())
- //   let etype = String::from("aes128");   
- //   let key = String::from("f9a9c510c3aeb65f58d6b38d6284ba36");
- //   let name_type = String::from("principal");   
- //   let vno8: u8 = 9;
- //   let vno: u32 = 9;
- //   let principal = String::from("delfino/server01.ad.company.com:1433@COMPANY.INT");
- //   let timestamp: u32 = Utc::now().timestamp().try_into().unwrap();
- //   let entries = vec![keytab::KeytabEntry::new(&principal, &name_type, &timestamp, &vno8, &etype, &key, &vno)];
- //   let keytab = keytab::Keytab::new(entries);
- //   let something = keytab::Keytab::from_csv(&"testdeets.txt".to_string()).unwrap();
- //   println!("{}",&something);
- //   let something2 = keytab::Keytab::from_file(&"test3.txt".to_string()).unwrap();
- //   println!("test2{}",&something2);
 }
 
 
